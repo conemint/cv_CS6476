@@ -1,6 +1,7 @@
 import cv2
 import os
 import numpy as np
+import pandas as pd
 # import matplotlib.pyplot as plt
 import math
 
@@ -23,7 +24,7 @@ def load_images_from_dir(data_dir, ext = ".png"):
 
     return imgs
 
-def load_set_of_stereo_images(pic_name):
+def load_set_of_stereo_images(pic_name, debug = False):
     """
         helper function to load img_left, img_right, 
         ground_truth_left,ground_truth_right of 
@@ -31,7 +32,9 @@ def load_set_of_stereo_images(pic_name):
         input: 
             pic_name (str): name of picture (folder name)
         output:
-            imgs(list of np.array): left, right, truth_l, truth_r
+            List containing:
+                imgs (list of np.array): left, right, truth_l, truth_r
+                calib_settings (dict): camera calib settings
     """
     img_dir = os.path.join(IMGS_DIR,pic_name)
     ground_truth_left = os.path.join(TRUTH_LEFT_DIR,pic_name)
@@ -41,17 +44,48 @@ def load_set_of_stereo_images(pic_name):
     imgs.extend(load_images_from_dir(ground_truth_left))
     imgs.extend(load_images_from_dir(ground_truth_right))
 
+    calib = os.path.join(img_dir,"calib.txt")
+    calib_settings = {}
+    df = pd.read_csv(calib,header = None)
+    calib_settings['f'] = float(df.iloc[0,0].split("=")[1].split(" ")[4])
+    calib_settings['doffs'] = float(df.iloc[2,0].split("=")[-1])
+    calib_settings['baseline'] = float(df.iloc[3,0].split("=")[-1])
+    
+    if debug:
+        print(imgs[2])
+        print(calib_settings)
     # for img in imgs:
     #     cv2.imshow('img', img)
     #     cv2.waitKey(0)
-    return imgs
+    return [imgs,calib_settings]
 
 def run_exp_1():
 
     '''
         run simple sum squared difference stereo correspondence algorithm
     '''
-    pass
+    imgs, calib = load_set_of_stereo_images("Piano")
+    img_cut = []
+    for idx,img in enumerate(imgs):
+        if idx < 2:
+            img_cut.append(np.copy(img[100,100,:]))
+        else:
+            img_cut.append(np.copy(img[100,100]))
+    print("init stereo class.")
+    st = stereo.stereo(imgs, calib)
+    print("running basic algo.")
+    basic_d = st.basic_algo_run()
+
+    z = st.get_z(basic_d)
+    cv2.imshow('img', basic_d)
+    cv2.waitKey(0)
+    cv2.imshow('img', z)
+    cv2.waitKey(0)
+    return basic_d, z
 
 if __name__ == "__main__":
-    load_set_of_stereo_images("Piano")
+    # load_set_of_stereo_images("Piano", debug = True)
+
+    bd, bz = run_exp_1()
+    print(bd)
+    print(bz)
