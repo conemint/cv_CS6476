@@ -1,7 +1,9 @@
 import numpy as np
 import cv2
 import os
+import sys
 import networkx as nx
+from itertools import combinations 
 
 def convert_color_to_one(a):
     return a[:,:,0] * 0.12 + a[:,:,1] * 0.58 + a[:,:,2]*0.3
@@ -29,7 +31,7 @@ class stereo:
         self.img1 = convert_color_to_one(imgs[1])
         # self.img_ds = []
 
-    def pre_process_SSD(self, img0, img1, k = 100, ws = 3):
+    def pre_process_SSD(self, img0, img1, k = 100, step = 1, ws = 3):
         """
         pre process img0 and img1 to a list of images
         to calculate disparity with img1 move left/right 
@@ -46,7 +48,7 @@ class stereo:
         # squared differences with move x
         m, n = img0.shape
         img_ds = []
-        for x in range(-k+1,k):
+        for x in range(-k+1,k, step):
             res = np.ones((m,n))*255**2
             if x < 0:
                 # print(img0.shape, img1.shape)
@@ -130,7 +132,7 @@ class stereo:
         ssd_ls = self.pre_process_SSD(img0, img1, k = rg, ws = x)
 
         # choose best for each pixel
-        print(ssd_ls.shape)
+        # print(ssd_ls.shape)
         corr = np.zeros((m,n,2))
         for i in range(m):
             for j in range(n):
@@ -163,31 +165,159 @@ class stereo:
         z = self.baseline * self.f / (self.doffs + abs(d))
         return z
 
-    def build_graph(self):
+
+    # def V_pq(self, K, p,q,f, pix_to_label,n):
+    #     '''
+    #     Given adjacent pixel p,q and label assignment f
+    #     calculate V(l_p,l_q) = min(K, |l_p - l_q|)
+    #     '''
+    #     ip,jp = divmod(p,n)
+    #     lp = pix_to_label[ip,jp]
+
+    #     iq,jq = divmod(q,n)
+    #     lq = pix_to_label[iq,jq]
+
+    #     return min(K, |lp - lq|)
+
+    # def Dp_fp(self, p, pix_to_label, n, ssd_ls):
+    #     '''
+    #     Calculate D_p(f_p)
+    #     '''
+    #     i,j = divmod(p,n)
+    #     fp = pix_to_label[i,j]
+    #     return ssd_ls[fp,i,j]
+
+    def add_cap_tp(self, G, pix, la, lb, ssd_ls, pix_to_label, 
+                dirs, m, n, K, tpa = True):
+        '''
+        Calculate capacity then 
+        Add edge alpha - pix to G with capacity
+        or pix - beta to G with capacity
+        '''
+
+        i,j = divmod(pix,n)
+        Dp_alpha = ssd_ls[la,i,j]
+        # neighbors
+        V = 0
+        for di,dj in dirs:
+            if not(0<=i+di<m and 0<=j+dj<n):
+                continue
+            # iq,jq = divmod(q,n)
+            lq = pix_to_label[i+di,j+dj]
+
+            # if q in Np
+            if lq == la or lq == lb:
+                continue
+            V += min(K, abs(la - lq))
+
+        tp = Dp_alpha + V
+        if tpa:
+            G.add_edge('alpha',pix, capacity = tp)
+        else:
+            G.add_edge(pix,'beta', capacity = tp)
+
+    def build_graph(self, alpha, beta, labels,pix_to_label,K, m, n, ssd_ls):
         '''
         Build graph for a pair of alpha-beta
         with each edge and it's weight.
+        Args:
+            alpha
 
         '''
+        dirs = ((1,0),(0,1), (-1,0),(0,-1))
         G = nx.DiGraph()
-        pass
+        # G.add_weighted_edges_from([(1, 2, 0.125), (1, 3, 0.75), (2, 4, 1.2), (3, 4, 0.375)])
+        pix_ab = labels[alpha].copy()
+        pix_ab.update(labels[beta])
+        # t-links
+        for pix in pix_ab:
+            self.add_cap_tp(G, pix, alpha, beta, ssd_ls, pix_to_label, 
+                dirs, m, n, K, tpa = True)
+            self.add_cap_tp(G, pix, beta, alpha, ssd_ls, pix_to_label, 
+                dirs, m, n, K, tpa = False)
+        # n-links
+        for p, q in combinations(pix_ab,2):
+            # if not neighbors
+
+            ip,jp = divmod(p,n)
+            iq,jq = divmod(q,n)
+            if abs(ip-iq) + abs(iq-iq) != 1:
+                continue
+            # for each pair
+            Vab = min(K, abs(alpha - beta))
+            G.add_edge(p,q, capacity = Vab)
+            G.add_edge(q,p, capacity = Vab)
+        return G
 
 
-    def Boykov_sway_algo(self):
+    def update_pix_to_label(self, pix_to_label, new_labels, ab_list, n):
+        '''
+        Args:
+            pix_to_label(np.array): to update
+            new_labels(list[set]): all labels
+            ab_list(list[]): list of labels to update
+            n(int): img col - used to convert pix and (i,j)
+        Output:
+            pix_to_label
+        '''
+        for alpha in alpha_list:
+            for pix in new_labels[alpha]:
+                i,j = divmod(pix,n)
+                pix_to_label[i,j] = alpha
+        return pix_to_label
+
+    def Boykov_swap_algo(self, ws = 3, rg = 100, L = 20):
         '''
 
         '''
-        # initial labeling: min-unary-cost
+        m, n = self.img0.shape
+        scale = (rg*2 - 1)//L
+        ssd_ls = self.pre_process_SSD(self.img0, self.img1, 
+            k = rg, step = scale, ws = ws)
 
+        # initial labeling: 
+        # random
+
+        # labels = {i: set() for i in range(rg*2 - 1)} # label match ssd_ls idx
+        # for i in range(m):
+        #     for j in range(n):
+        #         pix = i*n + j
+        #         labels[rg - 1].add(pix)
+        # pix_to_label = np.ones((m,n)) * (rg - 1)
+
+        pix_to_label = np.random.choice(L, m*n).reshape(m,n)
+        labels = {i: set() for i in range(L)}
+        for i in range(m):
+            for j in range(n):
+                pix = i*n + j
+                lb = pix_to_label[i,j]
+                labels[lb].add(pix)
+
+        # calculate energy
+        # Ef = 
+        Ef_old = sys.maxsize
         # update cycle
         success = True
         while success:
             success = False
             # for each pair of labels, iterate
-            # build graph
-            # find min-cut
-            # if E(f)_new < E(f)_old, update f, set success = True
-            if Ef_new < Ef_old:
-                f = f_new
-                success = True
-        return f
+            for alpha, beta in combinations(labels,2):
+                # build graph
+                G = self.build_graph(alpha, beta,
+                    labels,pix_to_label,rg//2, m, n, ssd_ls)
+                print(G.nodes)
+                # find min-cut
+                cut_value, partition = nx.minimum_cut(G, 'alpha', 'beta')
+
+                # if E(f)_new < E(f)_old, update f, set success = True
+                if cut_value < Ef_old:
+                    # f = f_new
+                    labels[alpha] = partition[0].remove('alpha')
+                    labels[beta]  = partition[0].remove('beta')
+                    pix_to_label = self.update_pix_to_label(pix_to_label, labels, 
+                                        [alpha, beta], n)
+                    success = True
+        pix_to_label_fix = pix_to_label * scale - (rg - 1)
+        return flabels, pix_to_label_fix
+
+

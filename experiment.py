@@ -60,6 +60,22 @@ def load_set_of_stereo_images(pic_name, debug = False):
     #     cv2.waitKey(0)
     return [imgs,calib_settings]
 
+def helper_generate_img(z):
+
+    print("process to normalize and save depth img")
+    # normalize
+    avg = np.average(z)
+    z[z==0] = avg
+    z = np.log(z.astype("float32"))
+    # print(z, np.min(z), np.max(z))
+    normal_array = ((z-np.min(z))/(np.max(z) - np.min(z)))*255
+    z_norm = normal_array.astype("uint8")
+    # save with JET colormap
+    im_color = cv2.applyColorMap(z_norm, cv2.COLORMAP_JET)
+    return im_color
+    # cv2.imwrite(os.path.join(OUTPUT_DIR,"disparity_%s.png"%img_name), im_color) 
+
+
 def run_exp_1(img_name = "Jadeplant"):
 
     '''
@@ -82,7 +98,7 @@ def run_exp_1(img_name = "Jadeplant"):
     print("init stereo class.")
     st = stereo.stereo(imgs, calib)
     print("running basic algo..")
-    basic_d = st.basic_algo_run(x = 3, rg = 100)
+    basic_d = st.basic_algo_run(x = 9, rg = 40)
     # print("basic_d",basic_d)
     print("converting to depth..")
     z = st.get_z(basic_d)
@@ -92,17 +108,36 @@ def run_exp_1(img_name = "Jadeplant"):
     # cv2.waitKey(0)
     # z_norm = cv2.normalize(z, None, 0, 255, cv2.NORM_MINMAX)
 
-    print("process to normalize and save depth img")
-    avg = np.average(z)
-    z[z==0] = avg
-    z = np.log(z.astype("float32"))
-    # print(z, np.min(z), np.max(z))
-    normal_array = ((z-np.min(z))/(np.max(z) - np.min(z)))*255
-    z_norm = normal_array.astype("uint8")
-    # print(z_norm)
-    im_color = cv2.applyColorMap(z_norm, cv2.COLORMAP_JET)
+    im_color = helper_generate_img(z)
     cv2.imwrite(os.path.join(OUTPUT_DIR,"disparity_%s.png"%img_name), im_color) 
+
     return basic_d, z
+
+
+def run_exp_2(img_name = "Jadeplant"):
+
+    '''
+        run Boykov_swap_algo algorithm
+        output:
+            basic_d, z:
+            also write image to file.
+    '''
+    print("running experiment 2: Boykov_swap_algo algorithm")
+    imgs, calib = load_set_of_stereo_images(img_name)
+    img_cut = []
+    print("init stereo class.")
+    st = stereo.stereo(imgs, calib)
+    print("running basic algo..")
+    basic_d = st.Boykov_swap_algo(ws = 3, rg = 100)
+    print("converting to depth..")
+    z = st.get_z(basic_d)
+
+    im_color = helper_generate_img(z)
+    cv2.imwrite(os.path.join(OUTPUT_DIR,"disparity_%s.png"%img_name), im_color) 
+
+    return basic_d, z
+
+
 
 if __name__ == "__main__":
     # load_set_of_stereo_images("Piano", debug = True)
@@ -116,4 +151,7 @@ if __name__ == "__main__":
         print("Use exactly 1 arguments. Total arguments passed:", n - 1) 
         raise ValueError
 
-    bd, bz = run_exp_1(img_name)
+    # bd, bz = run_exp_1(img_name)
+
+
+    bd, bz = run_exp_2(img_name)
