@@ -128,7 +128,7 @@ def run_exp_2(img_name = "Jadeplant"):
     print("init stereo class.")
     st = stereo.stereo(imgs, calib)
     print("running basic algo..")
-    basic_d = st.Boykov_swap_algo(ws = 3, rg = 100)
+    basic_d = st.Boykov_swap_algo(ws = 3, rg = 100, L = 20)
     print("converting to depth..")
     z = st.get_z(basic_d)
 

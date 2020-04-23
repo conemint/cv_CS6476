@@ -316,17 +316,19 @@ class stereo:
         Ef_old = [sys.maxsize for i in combinations(labels,2)] 
         # update cycle
         success = True
+        cycle = 0
         while success:
             success = False
+            cycle += 1
+            print("cycle: ", cycle)
             # for each pair of labels, iterate
             # for alpha, beta in combinations(labels,2):
             for idx,(alpha, beta) in enumerate(combinations(labels,2)):
-                print("alpha pix: ", len(labels[alpha]))
-                print("beta pix : ", len(labels[beta]))
                 # build graph
                 G = self.build_graph(alpha, beta,
                     labels,pix_to_label,rg//2, m, n, ssd_ls)
                 # print(G.nodes)
+                print(idx, "alpha: ", alpha, "; beta: ", beta)
                 print("G: # of nodes", len(list(G.nodes)), "# of edges: ", len(list(G.edges)))
                 # find min-cut
                 cut_value, partition = nx.minimum_cut(G, 'alpha', 'beta')
@@ -336,15 +338,18 @@ class stereo:
                 # if E(f)_new < E(f)_old, update f, set success = True
                 if cut_value < Ef_old[idx]:
                     # strictly better labeling is found
+                    imp_pct = ((Ef_old[idx] - cut_value)/Ef_old[idx])
+                    print("improve:", "{0:.2%}".format(imp_pct))
+
                     # f = f_new
                     partition[0].remove('alpha')
                     partition[1].remove('beta')
+                    print("update: ")
+                    print("alpha pix: ", len(labels[alpha]), "to: ", len(partition[0]))
+                    print("beta pix : ", len(labels[beta]) , "to: ", len(partition[1]))
                     labels[alpha] = partition[0]
                     labels[beta]  = partition[1]
 
-                    print("update: ")
-                    print("alpha pix: ", len(labels[alpha]))
-                    print("beta pix : ", len(labels[beta]))
                     pix_to_label = self.update_pix_to_label(pix_to_label, labels, 
                                         [alpha, beta], n)
                     Ef_old[idx] = cut_value
