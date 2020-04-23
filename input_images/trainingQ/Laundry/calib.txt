@@ -1,0 +1,12 @@
+cam0=[3700 0 xx; 0 3700 xx; 0 0 1]
+cam1=[3700 0 xx; 0 3700 xx; 0 0 1]
+doffs=230
+baseline=160
+width=
+height=
+ndisp=
+isint=
+vmin=
+vmax=
+dyavg=
+dymax=
