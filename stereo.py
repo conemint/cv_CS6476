@@ -37,10 +37,11 @@ class stereo:
             img0 to img1
             k (int): max move pixels
         """
+        print("k = ", k)
         m, n = img0.shape
-        res = np.ones((m,n))*255**2
         img_ds = []
         for x in range(-k+1,k):
+            res = np.ones((m,n))*255**2
             if x < 0:
                 # print(img0.shape, img1.shape)
                 # print(x,"shapes:", res[:,:n+x].shape, img0[:,:n+x].shape, img1[:,n+x:].shape)
@@ -113,18 +114,36 @@ class stereo:
         m, n = self.img0.shape
         img_ds = self.pre_process(img0, img1, k = rg)
         kernel = np.ones((x,x),np.float32)/x**2
+        # print(len(img_ds))
+        # for idx, img in enumerate(img_ds):
+        #     if idx%20 == 0:
+        #         cv2.imshow('img%d'%idx, img)
+        #         cv2.waitKey(0)
+        # test = img_ds[0] - img_ds[20]
+        # print(np.max(test), np.min(test))
+        # np.savetxt("ttt.txt", test)
         ssd_ls = [] # window ssd list for movement -k,k
         for diff_img in img_ds:
-
             dst = cv2.filter2D(diff_img,-1,kernel)*x**2
             ssd_ls.append(dst)
         ssd_ls = np.array(ssd_ls)
+
         # choose best for each pixel
+        print(ssd_ls.shape)
         corr = np.zeros((m,n,2))
         for i in range(m):
             for j in range(n):
                 idx = np.argmin(ssd_ls[:,i,j])
                 corr[i,j,:] = [idx,ssd_ls[idx,i,j]]
+        # np.savetxt("ttt.txt", corr[:,:,0], fmt='%d')
+        # a = corr[:,:,0]
+        # normal_array = ((a-np.min(a))/(np.max(a) - np.min(a)))*255
+        # z_norm = normal_array.astype("uint8")
+        # # print(z_norm)
+
+        # cv2.imshow('img', z_norm)
+        # cv2.waitKey(0)
+
         # m, n = self.img0.shape
         # print("shape: ", m, n)
         # # corr = [np.zeros(shape), np.zeros(shape)]
@@ -166,19 +185,21 @@ class stereo:
 
     def basic_algo_run(self, x = 3, rg = 100):
         print("run left to right: ")
-        d_left_right = self.basic_algo(self.img0, self.img1, x = 3, rg = 100)
-        print("run right to left: ")
-        d_right_left = self.basic_algo(self.img1, self.img0, x = 3, rg = 100)
-        # ans = np.copy(d_left_right)
-        # return np.minimum(d_left_right, - d_right_left)
-        print("get best of 2:")
-        d = np.copy(d_left_right[:,:,0])
-        m, n = self.img0.shape
-        for i in range(m):
-            for j in range(n):
-                if d_right_left[i,j,1] < d_left_right[i,j,1]:
-                    d[i,j] = d_right_left[i,j,0]
-        return d
+        d_left_right = self.basic_algo(self.img0, self.img1, x = x, rg = rg)
+        # print("run right to left: ")
+        # d_right_left = self.basic_algo(self.img1, self.img0, x = x, rg = rg)
+        # # ans = np.copy(d_left_right)
+        # # return np.minimum(d_left_right, - d_right_left)
+        # print("get best of 2:")
+        # d = np.copy(d_left_right[:,:,0])
+        # m, n = self.img0.shape
+        # for i in range(m):
+        #     for j in range(n):
+        #         if d_right_left[i,j,1] < d_left_right[i,j,1]:
+        #             d[i,j] = -d_right_left[i,j,0]
+        # return d
+
+        return d_left_right[:,:,0]
 
     def get_z(self, d):
         '''

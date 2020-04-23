@@ -94,4 +94,8 @@ if __name__ == "__main__":
     # np.save(os.path.join(img_dir,"truthD_%s.txt"%img_name), depths)
     # np.savetxt(os.path.join(img_dir,"truthD_%s_log.txt"%img_name), z_norm, delimiter=',', fmt='%d')
     # np.savetxt(os.path.join(img_dir,"truthD_%s.txt"%img_name), depths, delimiter=',', fmt='%d')
-    cv2.imwrite(os.path.join(img_dir,"truthD_%s.png"%img_name), z_norm) 
+
+    im_color = cv2.applyColorMap(z_norm, cv2.COLORMAP_JET)
+    cv2.imwrite(os.path.join(img_dir,"truthD_%s.png"%img_name), im_color) 
+
+    

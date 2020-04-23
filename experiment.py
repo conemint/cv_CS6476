@@ -1,5 +1,6 @@
 import cv2
 import os
+import sys
 import numpy as np
 import pandas as pd
 # import matplotlib.pyplot as plt
@@ -78,8 +79,8 @@ def run_exp_1(img_name = "Jadeplant"):
     print("init stereo class.")
     st = stereo.stereo(imgs, calib)
     print("running basic algo.")
-    basic_d = st.basic_algo_run(x = 15, rg = 100)
-
+    basic_d = st.basic_algo_run(x = 3, rg = 100)
+    print("basic_d",basic_d)
     z = st.get_z(basic_d)
     # cv2.imshow('img', basic_d)
     # cv2.waitKey(0)
@@ -87,21 +88,30 @@ def run_exp_1(img_name = "Jadeplant"):
     # cv2.waitKey(0)
     # z_norm = cv2.normalize(z, None, 0, 255, cv2.NORM_MINMAX)
 
-    print(z, np.min(z), np.max(z))
+    # print(z, np.min(z), np.max(z))
     avg = np.average(z)
     z[z==0] = avg
     z = np.log(z.astype("float32"))
-    print(z, np.min(z), np.max(z))
+    # print(z, np.min(z), np.max(z))
     normal_array = ((z-np.min(z))/(np.max(z) - np.min(z)))*255
     z_norm = normal_array.astype("uint8")
-    print(z_norm)
-
+    # print(z_norm)
+    # im_color = cv2.applyColorMap(z_norm, cv2.COLORMAP_JET)
     cv2.imwrite(os.path.join(OUTPUT_DIR,"disparity_%s.png"%img_name), z_norm) 
     return basic_d, z
 
 if __name__ == "__main__":
     # load_set_of_stereo_images("Piano", debug = True)
 
-    bd, bz = run_exp_1("Piano")
+    n = len(sys.argv) 
+    if n == 2:
+        img_name = sys.argv[1]
+    if n == 1:
+        img_name = "Piano"
+    elif n > 2:
+        print("Use exactly 1 arguments. Total arguments passed:", n - 1) 
+        raise ValueError
+
+    bd, bz = run_exp_1(img_name)
     print(bd)
     print(bz)
