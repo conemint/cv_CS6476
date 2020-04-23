@@ -230,23 +230,39 @@ class stereo:
         pix_ab = labels[alpha].copy()
         pix_ab.update(labels[beta])
         # t-links
+        print("build t-links for nodes: ", len(pix_ab))
         for pix in pix_ab:
             self.add_cap_tp(G, pix, alpha, beta, ssd_ls, pix_to_label, 
                 dirs, m, n, K, tpa = True)
             self.add_cap_tp(G, pix, beta, alpha, ssd_ls, pix_to_label, 
                 dirs, m, n, K, tpa = False)
         # n-links
-        for p, q in combinations(pix_ab,2):
-            # if not neighbors
-
-            ip,jp = divmod(p,n)
-            iq,jq = divmod(q,n)
-            if abs(ip-iq) + abs(iq-iq) != 1:
+        print("build n-links: ", m*n)
+        # for p, q in combinations(pix_ab,2):
+        seen = set()
+        for p in range(m*n):
+            if p not in pix_ab or p in seen:
                 continue
-            # for each pair
-            Vab = min(K, abs(alpha - beta))
-            G.add_edge(p,q, capacity = Vab)
-            G.add_edge(q,p, capacity = Vab)
+            seen.add(p)
+            # process p neighbors
+            ip,jp = divmod(p,n)
+            for di,dj in dirs:
+                if not (0<=ip+di<m and 0<=jp+dj<n):
+                    continue
+                q = (ip+di)*n + jp+dj
+                if q not in pix_ab or q in seen:
+                    continue
+                seen.add(q)
+
+            # # if not neighbors
+
+            # iq,jq = divmod(q,n)
+            # if abs(ip-iq) + abs(iq-iq) != 1:
+            #     continue
+                # for each pair
+                Vab = min(K, abs(alpha - beta))
+                G.add_edge(p,q, capacity = Vab)
+                G.add_edge(q,p, capacity = Vab)
         return G
 
 
@@ -260,7 +276,7 @@ class stereo:
         Output:
             pix_to_label
         '''
-        for alpha in alpha_list:
+        for alpha in ab_list:
             for pix in new_labels[alpha]:
                 i,j = divmod(pix,n)
                 pix_to_label[i,j] = alpha
@@ -302,18 +318,29 @@ class stereo:
             success = False
             # for each pair of labels, iterate
             for alpha, beta in combinations(labels,2):
+                print("alpha pix: ", len(labels[alpha]))
+                print("beta pix : ", len(labels[beta]))
                 # build graph
                 G = self.build_graph(alpha, beta,
                     labels,pix_to_label,rg//2, m, n, ssd_ls)
-                print(G.nodes)
+                # print(G.nodes)
+                print("G: # of nodes", len(list(G.nodes)), "# of edges: ", len(list(G.edges)))
                 # find min-cut
                 cut_value, partition = nx.minimum_cut(G, 'alpha', 'beta')
-
+                print("cut_value: ", cut_value)
+                # print("partition: ")
+                # print(type(partition[0]), len(partition[0]), len(partition[1]))
                 # if E(f)_new < E(f)_old, update f, set success = True
                 if cut_value < Ef_old:
                     # f = f_new
-                    labels[alpha] = partition[0].remove('alpha')
-                    labels[beta]  = partition[0].remove('beta')
+                    partition[0].remove('alpha')
+                    partition[1].remove('beta')
+                    labels[alpha] = partition[0]
+                    labels[beta]  = partition[1]
+
+                    print("update: ")
+                    print("alpha pix: ", len(labels[alpha]))
+                    print("beta pix : ", len(labels[beta]))
                     pix_to_label = self.update_pix_to_label(pix_to_label, labels, 
                                         [alpha, beta], n)
                     success = True
