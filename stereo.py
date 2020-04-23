@@ -311,13 +311,16 @@ class stereo:
 
         # calculate energy
         # Ef = 
-        Ef_old = sys.maxsize
+        # Ef_old = sys.maxsize
+
+        Ef_old = [sys.maxsize for i in combinations(labels,2)] 
         # update cycle
         success = True
         while success:
             success = False
             # for each pair of labels, iterate
-            for alpha, beta in combinations(labels,2):
+            # for alpha, beta in combinations(labels,2):
+            for idx,(alpha, beta) in enumerate(combinations(labels,2)):
                 print("alpha pix: ", len(labels[alpha]))
                 print("beta pix : ", len(labels[beta]))
                 # build graph
@@ -331,7 +334,8 @@ class stereo:
                 # print("partition: ")
                 # print(type(partition[0]), len(partition[0]), len(partition[1]))
                 # if E(f)_new < E(f)_old, update f, set success = True
-                if cut_value < Ef_old:
+                if cut_value < Ef_old[idx]:
+                    # strictly better labeling is found
                     # f = f_new
                     partition[0].remove('alpha')
                     partition[1].remove('beta')
@@ -343,7 +347,9 @@ class stereo:
                     print("beta pix : ", len(labels[beta]))
                     pix_to_label = self.update_pix_to_label(pix_to_label, labels, 
                                         [alpha, beta], n)
+                    Ef_old[idx] = cut_value
                     success = True
+                    break
         pix_to_label_fix = pix_to_label * scale - (rg - 1)
         return flabels, pix_to_label_fix
 
