@@ -4,6 +4,7 @@ import os
 import sys
 import networkx as nx
 from itertools import combinations 
+import time
 
 def convert_color_to_one(a):
     return a[:,:,0] * 0.12 + a[:,:,1] * 0.58 + a[:,:,2]*0.3
@@ -215,6 +216,7 @@ class stereo:
             G.add_edge('alpha',pix, capacity = tp)
         else:
             G.add_edge(pix,'beta', capacity = tp)
+        return tp
 
     def build_graph(self, alpha, beta, labels,pix_to_label,K, m, n, ssd_ls):
         '''
@@ -224,21 +226,25 @@ class stereo:
             alpha
 
         '''
+        E = 0
         dirs = ((1,0),(0,1), (-1,0),(0,-1))
         G = nx.DiGraph()
         # G.add_weighted_edges_from([(1, 2, 0.125), (1, 3, 0.75), (2, 4, 1.2), (3, 4, 0.375)])
         pix_ab = labels[alpha].copy()
         pix_ab.update(labels[beta])
         # t-links
-        print("build t-links for nodes: ", len(pix_ab))
+        # print("build t-links for nodes: ", len(pix_ab))
         for pix in pix_ab:
-            self.add_cap_tp(G, pix, alpha, beta, ssd_ls, pix_to_label, 
+            tpa = self.add_cap_tp(G, pix, alpha, beta, ssd_ls, pix_to_label, 
                 dirs, m, n, K, tpa = True)
-            self.add_cap_tp(G, pix, beta, alpha, ssd_ls, pix_to_label, 
+            tpb = self.add_cap_tp(G, pix, beta, alpha, ssd_ls, pix_to_label, 
                 dirs, m, n, K, tpa = False)
+            if pix in labels[alpha]:
+                E += tpb
+            else:
+                E += tpa
         # n-links
-        print("build n-links: ", m*n)
-        # for p, q in combinations(pix_ab,2):
+        # print("build n-links: ", m*n)
         seen = set()
         for p in range(m*n):
             if p not in pix_ab or p in seen:
@@ -263,7 +269,10 @@ class stereo:
                 Vab = min(K, abs(alpha - beta))
                 G.add_edge(p,q, capacity = Vab)
                 G.add_edge(q,p, capacity = Vab)
-        return G
+                if (p in labels[alpha] and q in labels[beta]) or \
+                    (p in labels[beta] and q in labels[alpha]):
+                    E += Vab
+        return G, E
 
 
     def update_pix_to_label(self, pix_to_label, new_labels, ab_list, n):
@@ -282,7 +291,7 @@ class stereo:
                 pix_to_label[i,j] = alpha
         return pix_to_label
 
-    def Boykov_swap_algo(self, ws = 3, rg = 100, L = 20):
+    def Boykov_swap_algo(self, ws = 3, rg = 100, L = 20, theta = 1e5):
         '''
 
         '''
@@ -313,32 +322,36 @@ class stereo:
         # Ef = 
         # Ef_old = sys.maxsize
 
-        Ef_old = [sys.maxsize for i in combinations(labels,2)] 
+        # Ef_old = [sys.maxsize for i in combinations(labels,2)] 
         # update cycle
         success = True
         cycle = 0
         while success:
             success = False
             cycle += 1
-            print("cycle: ", cycle)
+            print("CYCLE: ", cycle)
             # for each pair of labels, iterate
             # for alpha, beta in combinations(labels,2):
             for idx,(alpha, beta) in enumerate(combinations(labels,2)):
                 # build graph
-                G = self.build_graph(alpha, beta,
+                G, Ef_old = self.build_graph(alpha, beta,
                     labels,pix_to_label,rg//2, m, n, ssd_ls)
                 # print(G.nodes)
                 print(idx, "alpha: ", alpha, "; beta: ", beta)
                 print("G: # of nodes", len(list(G.nodes)), "# of edges: ", len(list(G.edges)))
                 # find min-cut
+
+                
+                start_time = time.time()
                 cut_value, partition = nx.minimum_cut(G, 'alpha', 'beta')
+                print("--- %s seconds ---" % (time.time() - start_time))
                 print("cut_value: ", cut_value)
                 # print("partition: ")
                 # print(type(partition[0]), len(partition[0]), len(partition[1]))
                 # if E(f)_new < E(f)_old, update f, set success = True
-                if cut_value < Ef_old[idx]:
+                if cut_value + theta < Ef_old :
                     # strictly better labeling is found
-                    imp_pct = ((Ef_old[idx] - cut_value)/Ef_old[idx])
+                    imp_pct = ((Ef_old - cut_value)/Ef_old)
                     print("improve:", "{0:.2%}".format(imp_pct))
 
                     # f = f_new
@@ -352,7 +365,7 @@ class stereo:
 
                     pix_to_label = self.update_pix_to_label(pix_to_label, labels, 
                                         [alpha, beta], n)
-                    Ef_old[idx] = cut_value
+                    # Ef_old[idx] = cut_value
                     success = True
                     break
         pix_to_label_fix = pix_to_label * scale - (rg - 1)
