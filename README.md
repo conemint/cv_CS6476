@@ -8,6 +8,11 @@ input images:
     ├── groundTruthLeft
     ├── groundTruthRight
     └── trainingQ
-    
+
 A list of code files will be included.
     
+ - pfmreader.py: read and process ground truth files in .pfm format. Output np.array of depths and grayscale .png for display purposes.
+
+ - stereo.py: stereo class.
+ 
+ - experiment.py:

@@ -9,7 +9,7 @@ import stereo
 
 # I/O directories
 INPUT_DIR = "input_images"
-OUTPUT_DIR = "./"
+OUTPUT_DIR = "output_images"
 
 IMGS_DIR = os.path.join(INPUT_DIR, 'trainingQ')
 TRUTH_LEFT_DIR = os.path.join(INPUT_DIR, 'groundTruthLeft')
@@ -59,33 +59,49 @@ def load_set_of_stereo_images(pic_name, debug = False):
     #     cv2.waitKey(0)
     return [imgs,calib_settings]
 
-def run_exp_1():
+def run_exp_1(img_name = "Jadeplant"):
 
     '''
         run simple sum squared difference stereo correspondence algorithm
     '''
-    imgs, calib = load_set_of_stereo_images("Piano")
+    imgs, calib = load_set_of_stereo_images(img_name)
     img_cut = []
-    for idx,img in enumerate(imgs):
-        if idx < 2:
-            img_cut.append(np.copy(img[100,100,:]))
-        else:
-            img_cut.append(np.copy(img[100,100]))
+    # for idx,img in enumerate(imgs):
+    #     if idx < 2:
+    #         img_cut.append(np.copy(img[:100,:100,:]))
+    #     else:
+    #         img_cut.append(np.copy(img[:100,:100]))
+    # for img in imgs:
+    #     print(img.shape)
+    # for img in img_cut:
+    #     print(img.shape)
     print("init stereo class.")
     st = stereo.stereo(imgs, calib)
     print("running basic algo.")
-    basic_d = st.basic_algo_run()
+    basic_d = st.basic_algo_run(x = 15, rg = 100)
 
     z = st.get_z(basic_d)
-    cv2.imshow('img', basic_d)
-    cv2.waitKey(0)
-    cv2.imshow('img', z)
-    cv2.waitKey(0)
+    # cv2.imshow('img', basic_d)
+    # cv2.waitKey(0)
+    # cv2.imshow('img', z)
+    # cv2.waitKey(0)
+    # z_norm = cv2.normalize(z, None, 0, 255, cv2.NORM_MINMAX)
+
+    print(z, np.min(z), np.max(z))
+    avg = np.average(z)
+    z[z==0] = avg
+    z = np.log(z.astype("float32"))
+    print(z, np.min(z), np.max(z))
+    normal_array = ((z-np.min(z))/(np.max(z) - np.min(z)))*255
+    z_norm = normal_array.astype("uint8")
+    print(z_norm)
+
+    cv2.imwrite(os.path.join(OUTPUT_DIR,"disparity_%s.png"%img_name), z_norm) 
     return basic_d, z
 
 if __name__ == "__main__":
     # load_set_of_stereo_images("Piano", debug = True)
 
-    bd, bz = run_exp_1()
+    bd, bz = run_exp_1("Piano")
     print(bd)
     print(bz)
