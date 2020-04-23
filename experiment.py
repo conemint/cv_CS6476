@@ -64,6 +64,9 @@ def run_exp_1(img_name = "Jadeplant"):
 
     '''
         run simple sum squared difference stereo correspondence algorithm
+        output:
+            basic_d, z:
+            also write image to file.
     '''
     imgs, calib = load_set_of_stereo_images(img_name)
     img_cut = []
@@ -78,9 +81,10 @@ def run_exp_1(img_name = "Jadeplant"):
     #     print(img.shape)
     print("init stereo class.")
     st = stereo.stereo(imgs, calib)
-    print("running basic algo.")
+    print("running basic algo..")
     basic_d = st.basic_algo_run(x = 3, rg = 100)
-    print("basic_d",basic_d)
+    # print("basic_d",basic_d)
+    print("converting to depth..")
     z = st.get_z(basic_d)
     # cv2.imshow('img', basic_d)
     # cv2.waitKey(0)
@@ -88,7 +92,7 @@ def run_exp_1(img_name = "Jadeplant"):
     # cv2.waitKey(0)
     # z_norm = cv2.normalize(z, None, 0, 255, cv2.NORM_MINMAX)
 
-    # print(z, np.min(z), np.max(z))
+    print("process to normalize and save depth img")
     avg = np.average(z)
     z[z==0] = avg
     z = np.log(z.astype("float32"))
@@ -96,8 +100,8 @@ def run_exp_1(img_name = "Jadeplant"):
     normal_array = ((z-np.min(z))/(np.max(z) - np.min(z)))*255
     z_norm = normal_array.astype("uint8")
     # print(z_norm)
-    # im_color = cv2.applyColorMap(z_norm, cv2.COLORMAP_JET)
-    cv2.imwrite(os.path.join(OUTPUT_DIR,"disparity_%s.png"%img_name), z_norm) 
+    im_color = cv2.applyColorMap(z_norm, cv2.COLORMAP_JET)
+    cv2.imwrite(os.path.join(OUTPUT_DIR,"disparity_%s.png"%img_name), im_color) 
     return basic_d, z
 
 if __name__ == "__main__":
@@ -113,5 +117,3 @@ if __name__ == "__main__":
         raise ValueError
 
     bd, bz = run_exp_1(img_name)
-    print(bd)
-    print(bz)
