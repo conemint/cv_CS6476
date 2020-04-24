@@ -389,7 +389,7 @@ class stereo:
                     # Ef_old[idx] = cut_value
                     success = True
                     break
-            if cycle%5 == 0:
+            if cycle%1 == 0:
                 # save
                 pix_to_label_fix = pix_to_label * scale - (rg - 1)
                 z = self.get_z(pix_to_label_fix)
@@ -397,6 +397,7 @@ class stereo:
                 im_color = helper_generate_img(z)
                 cv2.imwrite(os.path.join(outdir,"seg_%s_%d.png"%(img_name, cycle)), im_color) 
 
+                np.save(os.path.join(outdir,"seg_%s_%d"%(img_name, cycle)), pix_to_label_fix)
         pix_to_label_fix = pix_to_label * scale - (rg - 1)
         return pix_to_label_fix
 
