@@ -197,7 +197,7 @@ if __name__ == "__main__":
         bd, bz = run_exp_1(img_name)
 
     elif opt == 2:
-        bd, bz = run_exp_2(img_name, ws = ws, rg = rg, L = 20)
+        bd, bz = run_exp_2(img_name, outdir = "./test_output1", ws = ws, rg = rg, L = 20)
     elif opt == 3:
         compare_matrix(img_name)
 
