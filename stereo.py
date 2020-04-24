@@ -272,6 +272,8 @@ class stereo:
                 if (p in labels[alpha] and q in labels[beta]) or \
                     (p in labels[beta] and q in labels[alpha]):
                     E += Vab
+        # if alpha not in G.nodes:
+        #     G.add
         return G, E
 
 
@@ -301,16 +303,12 @@ class stereo:
             k = rg, step = scale, ws = ws)
 
         # initial labeling: 
-        # random
-
-        # labels = {i: set() for i in range(rg*2 - 1)} # label match ssd_ls idx
-        # for i in range(m):
-        #     for j in range(n):
-        #         pix = i*n + j
-        #         labels[rg - 1].add(pix)
-        # pix_to_label = np.ones((m,n)) * (rg - 1)
-
-        pix_to_label = np.random.choice(L, m*n).reshape(m,n)
+        # # random
+        # pix_to_label = np.random.choice(L, m*n).reshape(m,n)
+        # use basic algo
+        basic_d = self.basic_algo_run(x = 9, rg = 40)
+        pix_to_label = (basic_d + rg-1)//scale
+        print(np.min(pix_to_label), np.max(pix_to_label))
         labels = {i: set() for i in range(L)}
         for i in range(m):
             for j in range(n):
@@ -334,6 +332,8 @@ class stereo:
             # for alpha, beta in combinations(labels,2):
             for idx,(alpha, beta) in enumerate(combinations(labels,2)):
                 # build graph
+                if len(labels[alpha]) == 0 and len(labels[beta]) == 0:
+                    continue
                 G, Ef_old = self.build_graph(alpha, beta,
                     labels,pix_to_label,rg//2, m, n, ssd_ls)
                 # print(G.nodes)
@@ -353,6 +353,8 @@ class stereo:
                     # strictly better labeling is found
                     imp_pct = ((Ef_old - cut_value)/Ef_old)
                     print("improve:", "{0:.2%}".format(imp_pct))
+                    if imp_pct < 0.05:
+                        continue
 
                     # f = f_new
                     partition[0].remove('alpha')
