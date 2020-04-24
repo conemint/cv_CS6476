@@ -9,6 +9,21 @@ import time
 def convert_color_to_one(a):
     return a[:,:,0] * 0.12 + a[:,:,1] * 0.58 + a[:,:,2]*0.3
 
+def helper_generate_img(z):
+
+    print("process to normalize and save depth img")
+    # normalize
+    avg = np.average(z)
+    z[z==0] = avg
+    z = np.log(z.astype("float32"))
+    # print(z, np.min(z), np.max(z))
+    normal_array = ((z-np.min(z))/(np.max(z) - np.min(z)))*255
+    z_norm = normal_array.astype("uint8")
+    # save with JET colormap
+    im_color = cv2.applyColorMap(z_norm, cv2.COLORMAP_JET)
+    return im_color
+    # cv2.imwrite(os.path.join(OUTPUT_DIR,"disparity_%s.png"%img_name), im_color) 
+
 class stereo:
     '''
     Args:
@@ -296,7 +311,8 @@ class stereo:
                 pix_to_label[i,j] = alpha
         return pix_to_label
 
-    def Boykov_swap_algo(self, ws = 3, rg = 100, L = 20, theta = 1e5):
+    def Boykov_swap_algo(self, ws = 3, rg = 100, L = 20, theta = 1e5, 
+        outdir = "./test_output", img_name = "Piano"):
         '''
 
         '''
@@ -373,7 +389,15 @@ class stereo:
                     # Ef_old[idx] = cut_value
                     success = True
                     break
+            if cycle%5 == 0:
+                # save
+                pix_to_label_fix = pix_to_label * scale - (rg - 1)
+                z = self.get_z(pix_to_label_fix)
+
+                im_color = helper_generate_img(z)
+                cv2.imwrite(os.path.join(outdir,"seg_%s_%d.png"%(img_name, cycle)), im_color) 
+
         pix_to_label_fix = pix_to_label * scale - (rg - 1)
-        return flabels, pix_to_label_fix
+        return pix_to_label_fix
 
 
