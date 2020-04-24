@@ -118,6 +118,10 @@ def run_exp_1(img_name = "Jadeplant"):
     im_color = helper_generate_img(z)
     cv2.imwrite(os.path.join(OUTPUT_DIR,"disparity_%s.png"%img_name), im_color) 
 
+    # save np.array
+    np.save(os.path.join(OUTPUT_DIR,"dsimple_%s_%s"%(img_name, timestr)),
+        basic_d)
+
     return basic_d, z
 
 

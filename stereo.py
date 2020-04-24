@@ -312,12 +312,33 @@ class stereo:
                 pix_to_label[i,j] = alpha
         return pix_to_label
 
+    def Ef_total(self, pix_to_label, ssd_ls, dirs, K):
+        m, n = self.img0.shape
+        E_data = np.zeros((m,n))
+        E_smooth = 0
+        for i in range(m):
+            for j in range(n):
+                lp = pix_to_label[i,j]
+                E_data[i,j] = ssd_ls[int(lp),i,j]
+                for di,dj in dirs:
+                    if not(0<=i+di<m and 0<=j+dj<n):
+                        continue
+                    lq = pix_to_label[i+di,j+dj]
+                    E_smooth += min(K, abs(lp - lq))
+                     
+        Ef = E_data.sum() + E_smooth/2
+        return Ef
+
     def Boykov_swap_algo(self, ws = 3, rg = 100, L = 20, theta = 1e5, 
         outdir = "./test_output", img_name = "Piano"):
         '''
 
         '''
+        K = L//5
         m, n = self.img0.shape
+        dirs = ((1,0),(0,1), (-1,0),(0,-1), 
+            (1,1),(1,-1),(-1,1),(-1,-1))
+
         scale = (rg*2 - 1)//L
         ssd_ls = self.pre_process_SSD(self.img0, self.img1, 
             k = rg, step = scale, ws = ws)
@@ -336,10 +357,10 @@ class stereo:
                 lb = pix_to_label[i,j]
                 labels[lb].add(pix)
 
-        # calculate energy
-        # Ef = 
         # Ef_old = sys.maxsize
 
+        # calculate energy of whole image with current assignment
+        Ef = self.Ef_total(pix_to_label, ssd_ls, dirs, K)
         # Ef_old = [sys.maxsize for i in combinations(labels,2)] 
         # update cycle
         success = True
@@ -348,14 +369,18 @@ class stereo:
             success = False
             cycle += 1
             print("CYCLE: ", cycle)
+
+
             # for each pair of labels, iterate
-            # for alpha, beta in combinations(labels,2):
-            for idx,(alpha, beta) in enumerate(combinations(labels,2)):
+            # sort labels by len of pix in it (descending)
+            sorted_label_list = sorted(labels, key=lambda k: len(labels[k]), reverse=True)
+
+            for idx,(alpha, beta) in enumerate(combinations(sorted_label_list,2)):
                 # build graph
                 if len(labels[alpha]) == 0 and len(labels[beta]) == 0:
                     continue
                 G, Ef_old = self.build_graph(alpha, beta,
-                    labels,pix_to_label,rg//2, m, n, ssd_ls)
+                    labels,pix_to_label,K, m, n, ssd_ls)
                 # print(G.nodes)
                 print(idx, "alpha: ", alpha, "; beta: ", beta)
                 print("G: # of nodes", len(list(G.nodes)), "# of edges: ", len(list(G.edges)))
@@ -369,7 +394,9 @@ class stereo:
                 # print("partition: ")
                 # print(type(partition[0]), len(partition[0]), len(partition[1]))
                 # if E(f)_new < E(f)_old, update f, set success = True
-                if cut_value + theta < Ef_old :
+                # if cut_value + theta < Ef_old :
+                Ef_new = self.Ef_total(pix_to_label, ssd_ls, dirs, K)
+                if Ef_new + theta < Ef:
                     # strictly better labeling is found
                     imp_pct = ((Ef_old - cut_value)/Ef_old)
                     print("improve:", "{0:.2%}".format(imp_pct))
@@ -387,10 +414,10 @@ class stereo:
 
                     pix_to_label = self.update_pix_to_label(pix_to_label, labels, 
                                         [alpha, beta], n)
-                    # Ef_old[idx] = cut_value
+                    Ef = Ef_new
                     success = True
                     break
-            if cycle%5 == 0:
+            if cycle%1 == 0:
                 # save
                 pix_to_label_fix = pix_to_label * scale - (rg - 1)
                 z = self.get_z(pix_to_label_fix)
