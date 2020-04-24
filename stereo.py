@@ -390,7 +390,7 @@ class stereo:
                     # Ef_old[idx] = cut_value
                     success = True
                     break
-            if cycle%1 == 0:
+            if cycle%5 == 0:
                 # save
                 pix_to_label_fix = pix_to_label * scale - (rg - 1)
                 z = self.get_z(pix_to_label_fix)
