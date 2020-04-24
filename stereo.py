@@ -5,6 +5,7 @@ import sys
 import networkx as nx
 from itertools import combinations 
 import time
+import random
 
 def convert_color_to_one(a):
     return a[:,:,0] * 0.12 + a[:,:,1] * 0.58 + a[:,:,2]*0.3
@@ -339,7 +340,7 @@ class stereo:
         dirs = ((1,0),(0,1), (-1,0),(0,-1), 
             (1,1),(1,-1),(-1,1),(-1,-1))
 
-        scale = (rg*2 - 1)//L
+        scale = (rg*2 )//L
         ssd_ls = self.pre_process_SSD(self.img0, self.img1, 
             k = rg, step = scale, ws = ws)
 
@@ -349,13 +350,16 @@ class stereo:
         # use basic algo
         basic_d = self.basic_algo_run(x = ws, rg = rg)
         pix_to_label = (basic_d + rg-1)//scale
-        print(np.min(pix_to_label), np.max(pix_to_label))
+        # print(np.min(basic_d), np.max(basic_d), rg, scale, L, (rg*2)//L )
+        # print(np.min(pix_to_label), np.max(pix_to_label))
         labels = {i: set() for i in range(L)}
         for i in range(m):
             for j in range(n):
                 pix = i*n + j
                 lb = pix_to_label[i,j]
-                labels[lb].add(pix)
+                # if int(lb) == 22:
+                    # print("keys: ",labels.keys(), len(labels.keys()))
+                labels[int(lb)].add(pix)
 
         # Ef_old = sys.maxsize
 
@@ -374,6 +378,9 @@ class stereo:
             # for each pair of labels, iterate
             # sort labels by len of pix in it (descending)
             sorted_label_list = sorted(labels, key=lambda k: len(labels[k]), reverse=True)
+            
+            # random suffle list
+            random.shuffle(sorted_label_list)
 
             for idx,(alpha, beta) in enumerate(combinations(sorted_label_list,2)):
                 # build graph
