@@ -329,7 +329,7 @@ class stereo:
         Ef = E_data.sum() + E_smooth/2
         return Ef
 
-    def Boykov_swap_algo(self, ws = 3, rg = 100, L = 20, theta = 1e5, 
+    def Boykov_swap_algo(self, ws = 3, rg = 100, L = 20, theta = 1e-3, 
         outdir = "./test_output", img_name = "Piano"):
         '''
 
@@ -396,6 +396,7 @@ class stereo:
                 # if E(f)_new < E(f)_old, update f, set success = True
                 # if cut_value + theta < Ef_old :
                 Ef_new = self.Ef_total(pix_to_label, ssd_ls, dirs, K)
+                print(Ef_new, theta,  Ef)
                 if Ef_new + theta < Ef:
                     # strictly better labeling is found
                     imp_pct = ((Ef_old - cut_value)/Ef_old)

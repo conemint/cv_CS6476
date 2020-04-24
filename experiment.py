@@ -119,7 +119,7 @@ def run_exp_1(img_name = "Jadeplant"):
     cv2.imwrite(os.path.join(OUTPUT_DIR,"disparity_%s.png"%img_name), im_color) 
 
     # save np.array
-    np.save(os.path.join(OUTPUT_DIR,"dsimple_%s_%s"%(img_name, timestr)),
+    np.save(os.path.join(OUTPUT_DIR,"dsimple_%s"%(img_name)),
         basic_d)
 
     return basic_d, z
@@ -148,7 +148,26 @@ def run_exp_2(img_name = "Jadeplant", ws = 5, rg = 60, L = 20):
 
     return basic_d, z
 
+def compare_matrix(image_name = "Piano",method = "SSD", alg2name = "seg_Piano_4"):
+    # load ground truth
+    truth_dir = os.path.join(TRUTH_LEFT_DIR,image_name)
+    truth_fil = os.path.join(truth_dir, "truthD_%s.npy"%image_name)
+    truth = np.load(truth_fil)
+    print(truth.shape, truth.sum())
+    # load simple result
+    simple_fil = os.path.join(OUTPUT_DIR, "dsimple_%s.npy"%image_name)
+    simple = np.load(simple_fil)
+    print(simple.shape, simple.sum())
+    # load energy result
+    energy_fil = os.path.join("./test_output", "%s.npy"%alg2name)
+    energy = np.load(energy_fil)
+    print(energy.shape, energy.sum())
 
+    # get ssd
+    ssd1 = ((((truth - simple)**2).sum())**0.5)/truth.size
+    ssd2 = ((((truth - energy)**2).sum())**0.5)/truth.size
+    print("ssd algo1: ", ssd1, "; ssd algo2: ", ssd2)
+    return ssd1, ssd2
 
 if __name__ == "__main__":
     # load_set_of_stereo_images("Piano", debug = True)
@@ -179,4 +198,6 @@ if __name__ == "__main__":
 
     elif opt == 2:
         bd, bz = run_exp_2(img_name, ws = ws, rg = rg, L = 20)
+    elif opt == 3:
+        compare_matrix(img_name)
 
