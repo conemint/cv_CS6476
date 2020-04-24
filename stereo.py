@@ -245,7 +245,8 @@ class stereo:
 
         '''
         E = 0
-        dirs = ((1,0),(0,1), (-1,0),(0,-1))
+        dirs = ((1,0),(0,1), (-1,0),(0,-1), 
+            (1,1),(1,-1),(-1,1),(-1,-1))
         G = nx.DiGraph()
         # G.add_weighted_edges_from([(1, 2, 0.125), (1, 3, 0.75), (2, 4, 1.2), (3, 4, 0.375)])
         pix_ab = labels[alpha].copy()
@@ -389,15 +390,18 @@ class stereo:
                     # Ef_old[idx] = cut_value
                     success = True
                     break
-            if cycle%5 == 0:
+            if cycle%1 == 0:
                 # save
                 pix_to_label_fix = pix_to_label * scale - (rg - 1)
                 z = self.get_z(pix_to_label_fix)
 
                 im_color = helper_generate_img(z)
-                cv2.imwrite(os.path.join(outdir,"seg_%s_%d.png"%(img_name, cycle)), im_color) 
+                timestr = time.strftime("%Y%m%d-%H%M%S")
+                cv2.imwrite(os.path.join(outdir,"seg_%s_%d_%s.png"%(img_name, cycle, timestr)),
+                    im_color) 
+                np.save(os.path.join(outdir,"seg_%s_%d_%s"%(img_name, cycle, timestr)),
+                    pix_to_label_fix)
 
-                np.save(os.path.join(outdir,"seg_%s_%d"%(img_name, cycle)), pix_to_label_fix)
         pix_to_label_fix = pix_to_label * scale - (rg - 1)
         return pix_to_label_fix
 

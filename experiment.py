@@ -121,7 +121,7 @@ def run_exp_1(img_name = "Jadeplant"):
     return basic_d, z
 
 
-def run_exp_2(img_name = "Jadeplant"):
+def run_exp_2(img_name = "Jadeplant", ws = 5, rg = 60, L = 20):
 
     '''
         run Boykov_swap_algo algorithm
@@ -135,7 +135,7 @@ def run_exp_2(img_name = "Jadeplant"):
     print("init stereo class.")
     st = stereo.stereo(imgs, calib)
     print("running basic algo..")
-    basic_d = st.Boykov_swap_algo(ws = 3, rg = 100, L = 20, img_name = img_name)
+    basic_d = st.Boykov_swap_algo(ws = ws, rg = rg, L = L, img_name = img_name)
     print("converting to depth..")
     z = st.get_z(basic_d)
 
@@ -153,16 +153,26 @@ if __name__ == "__main__":
     if n == 3:
         img_name = sys.argv[1]
         opt = int(sys.argv[2]) # exp: 1,2
+        ws = 5
+        rg = 60
     elif n == 1:
         img_name = "Piano"
         opt = 2
+        ws = 5
+        rg = 60
+    elif n == 5:
+        img_name = sys.argv[1]
+        opt = int(sys.argv[2]) # exp: 1,2
+        ws = int(sys.argv[3])
+        rg = int(sys.argv[4])
+
     else:
-        print("Use exactly 0 or 2 arguments. Total arguments passed:", n - 1) 
+        print("Use exactly 0 or 2 or 4 arguments. Total arguments passed:", n - 1) 
         raise ValueError
 
     if opt == 1:
         bd, bz = run_exp_1(img_name)
 
     elif opt == 2:
-        bd, bz = run_exp_2(img_name)
+        bd, bz = run_exp_2(img_name, ws = ws, rg = rg, L = 20)
 
