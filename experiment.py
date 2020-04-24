@@ -159,14 +159,15 @@ def compare_matrix(image_name = "Piano",method = "SSD", alg2name = "seg_Piano_4"
     simple_fil = os.path.join(OUTPUT_DIR, "dsimple_%s.npy"%image_name)
     simple = np.load(simple_fil)
     print(simple.shape, simple.sum())
-    # load energy result
-    energy_fil = os.path.join("./test_output", "%s.npy"%alg2name)
-    energy = np.load(energy_fil)
-    print(energy.shape, energy.sum())
+    # # load energy result
+    # energy_fil = os.path.join("./test_output", "%s.npy"%alg2name)
+    # energy = np.load(energy_fil)
+    # print(energy.shape, energy.sum())
 
     # get ssd
     ssd1 = ((((truth - simple)**2).sum())**0.5)/truth.size
-    ssd2 = ((((truth - energy)**2).sum())**0.5)/truth.size
+    ssd2 = 0
+    # ssd2 = ((((truth - energy)**2).sum())**0.5)/truth.size
     print("ssd algo1: ", ssd1, "; ssd algo2: ", ssd2)
     return ssd1, ssd2
 

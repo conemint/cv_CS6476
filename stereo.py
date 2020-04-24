@@ -6,6 +6,9 @@ import networkx as nx
 from itertools import combinations 
 import time
 import random
+import copy
+
+import maxflow
 
 def convert_color_to_one(a):
     return a[:,:,0] * 0.12 + a[:,:,1] * 0.58 + a[:,:,2]*0.3
@@ -311,7 +314,7 @@ class stereo:
             for pix in new_labels[alpha]:
                 i,j = divmod(pix,n)
                 pix_to_label[i,j] = alpha
-        return pix_to_label
+        return np.copy(pix_to_label)
 
     def Ef_total(self, pix_to_label, ssd_ls, dirs, K):
         m, n = self.img0.shape
@@ -402,7 +405,23 @@ class stereo:
                 # print(type(partition[0]), len(partition[0]), len(partition[1]))
                 # if E(f)_new < E(f)_old, update f, set success = True
                 # if cut_value + theta < Ef_old :
-                Ef_new = self.Ef_total(pix_to_label, ssd_ls, dirs, K)
+
+                new_labels = copy.deepcopy(labels)
+                new_pix_to_label = copy.deepcopy(pix_to_label)
+
+                # if f = f_new, solve for Ef_new
+                partition[0].remove('alpha')
+                partition[1].remove('beta')
+                print("change if update: ")
+                print("alpha pix: ", len(labels[alpha]), "to: ", len(partition[0]))
+                print("beta pix : ", len(labels[beta]) , "to: ", len(partition[1]))
+                new_labels[alpha] = partition[0]
+                new_labels[beta]  = partition[1]
+
+                new_pix_to_label = self.update_pix_to_label(pix_to_label, new_labels, 
+                                    [alpha, beta], n)
+
+                Ef_new = self.Ef_total(new_pix_to_label, ssd_ls, dirs, K)
                 print(Ef_new, theta,  Ef)
                 if Ef_new + theta < Ef:
                     # strictly better labeling is found
@@ -412,16 +431,19 @@ class stereo:
                         continue
 
                     # f = f_new
-                    partition[0].remove('alpha')
-                    partition[1].remove('beta')
-                    print("update: ")
-                    print("alpha pix: ", len(labels[alpha]), "to: ", len(partition[0]))
-                    print("beta pix : ", len(labels[beta]) , "to: ", len(partition[1]))
-                    labels[alpha] = partition[0]
-                    labels[beta]  = partition[1]
+                    labels[alpha] = np.copy(new_labels[alpha])
+                    labels[beta] = np.copy(new_labels[beta])
+                    pix_to_label = copy.deepcopy(new_pix_to_label)
+                    # partition[0].remove('alpha')
+                    # partition[1].remove('beta')
+                    # print("update: ")
+                    # print("alpha pix: ", len(labels[alpha]), "to: ", len(partition[0]))
+                    # print("beta pix : ", len(labels[beta]) , "to: ", len(partition[1]))
+                    # labels[alpha] = partition[0]
+                    # labels[beta]  = partition[1]
 
-                    pix_to_label = self.update_pix_to_label(pix_to_label, labels, 
-                                        [alpha, beta], n)
+                    # pix_to_label = self.update_pix_to_label(pix_to_label, labels, 
+                    #                     [alpha, beta], n)
                     Ef = Ef_new
                     success = True
                     break
