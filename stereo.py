@@ -27,9 +27,12 @@ class stereo:
         self.f = calib["f"]
         self.doffs = calib["doffs"]
         self.baseline = calib["baseline"]
-
-        self.img0 = convert_color_to_one(imgs[0])
-        self.img1 = convert_color_to_one(imgs[1])
+        if len(imgs[0].shape) == 3:
+            self.img0 = convert_color_to_one(imgs[0])
+            self.img1 = convert_color_to_one(imgs[1])
+        else:
+            self.img0 = imgs[0]
+            self.img1 = imgs[1]
         # self.img_ds = []
 
     def pre_process_SSD(self, img0, img1, k = 100, step = 1, ws = 3):

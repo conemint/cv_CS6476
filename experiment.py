@@ -41,16 +41,23 @@ def load_set_of_stereo_images(pic_name, debug = False):
     ground_truth_left = os.path.join(TRUTH_LEFT_DIR,pic_name)
     ground_truth_right = os.path.join(TRUTH_RIGHT_DIR,pic_name)
 
-    imgs = load_images_from_dir(img_dir)
-    imgs.extend(load_images_from_dir(ground_truth_left))
-    imgs.extend(load_images_from_dir(ground_truth_right))
-
-    calib = os.path.join(img_dir,"calib.txt")
     calib_settings = {}
-    df = pd.read_csv(calib,header = None)
-    calib_settings['f'] = float(df.iloc[0,0].split("=")[1].split(" ")[4])
-    calib_settings['doffs'] = float(df.iloc[2,0].split("=")[-1])
-    calib_settings['baseline'] = float(df.iloc[3,0].split("=")[-1])
+    if pic_name == "map":
+        imgs = load_images_from_dir(img_dir, ext = ".pgm")
+
+        calib_settings['f'] = 1
+        calib_settings['doffs'] = 230
+        calib_settings['baseline'] = 1
+    else:
+        imgs = load_images_from_dir(img_dir)
+        imgs.extend(load_images_from_dir(ground_truth_left))
+        imgs.extend(load_images_from_dir(ground_truth_right))
+
+        calib = os.path.join(img_dir,"calib.txt")
+        df = pd.read_csv(calib,header = None)
+        calib_settings['f'] = float(df.iloc[0,0].split("=")[1].split(" ")[4])
+        calib_settings['doffs'] = float(df.iloc[2,0].split("=")[-1])
+        calib_settings['baseline'] = float(df.iloc[3,0].split("=")[-1])
     
     if debug:
         print(imgs[2])
@@ -143,15 +150,19 @@ if __name__ == "__main__":
     # load_set_of_stereo_images("Piano", debug = True)
 
     n = len(sys.argv) 
-    if n == 2:
+    if n == 3:
         img_name = sys.argv[1]
-    if n == 1:
+        opt = int(sys.argv[2]) # exp: 1,2
+    elif n == 1:
         img_name = "Piano"
-    elif n > 2:
-        print("Use exactly 1 arguments. Total arguments passed:", n - 1) 
+        opt = 2
+    else:
+        print("Use exactly 0 or 2 arguments. Total arguments passed:", n - 1) 
         raise ValueError
 
-    # bd, bz = run_exp_1(img_name)
+    if opt == 1:
+        bd, bz = run_exp_1(img_name)
 
+    elif opt == 2:
+        bd, bz = run_exp_2(img_name)
 
-    bd, bz = run_exp_2(img_name)
