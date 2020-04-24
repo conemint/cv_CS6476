@@ -414,8 +414,8 @@ class stereo:
                 partition[0].remove('alpha')
                 partition[1].remove('beta')
                 print("change if update: ")
-                print("alpha pix: ", len(labels[alpha]), "to: ", len(partition[0]))
-                print("beta pix : ", len(labels[beta]) , "to: ", len(partition[1]))
+                print("alpha pix: ", len(labels[alpha]), "to: ", len(partition[1]))
+                print("beta pix : ", len(labels[beta]) , "to: ", len(partition[0]))
                 new_labels[alpha] = partition[1]
                 new_labels[beta]  = partition[0]
 
@@ -451,7 +451,7 @@ class stereo:
                     Ef = Ef_new
                     success = True
                     break
-            if cycle%1 == 0:
+            if cycle%5 == 0:
                 # save
                 pix_to_label_fix = pix_to_label * scale - (rg - 1)
                 z = self.get_z(pix_to_label_fix)

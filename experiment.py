@@ -149,7 +149,7 @@ def run_exp_2(img_name = "Jadeplant", ws = 5, rg = 60, L = 20):
 
     return basic_d, z
 
-def compare_matrix(image_name = "Piano",method = "SSD", alg2name = "seg_Piano_4"):
+def compare_matrix(image_name = "Piano",method = "SSD", alg2name = "seg_Piano_40_20200424-110623"):
     # load ground truth
     truth_dir = os.path.join(TRUTH_LEFT_DIR,image_name)
     truth_fil = os.path.join(truth_dir, "truthD_%s.npy"%image_name)
@@ -159,15 +159,15 @@ def compare_matrix(image_name = "Piano",method = "SSD", alg2name = "seg_Piano_4"
     simple_fil = os.path.join(OUTPUT_DIR, "dsimple_%s.npy"%image_name)
     simple = np.load(simple_fil)
     print(simple.shape, simple.sum())
-    # # load energy result
-    # energy_fil = os.path.join("./test_output", "%s.npy"%alg2name)
-    # energy = np.load(energy_fil)
-    # print(energy.shape, energy.sum())
+    # load energy result
+    energy_fil = os.path.join("./test_output1", "%s.npy"%alg2name)
+    energy = np.load(energy_fil)
+    print(energy.shape, energy.sum())
 
     # get ssd
     ssd1 = ((((truth - simple)**2).sum())**0.5)/truth.size
-    ssd2 = 0
-    # ssd2 = ((((truth - energy)**2).sum())**0.5)/truth.size
+    # ssd2 = 0
+    ssd2 = ((((truth - energy)**2).sum())**0.5)/truth.size
     print("ssd algo1: ", ssd1, "; ssd algo2: ", ssd2)
     return ssd1, ssd2
 
