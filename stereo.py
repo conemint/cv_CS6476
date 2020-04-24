@@ -364,11 +364,10 @@ class stereo:
                     # print("keys: ",labels.keys(), len(labels.keys()))
                 labels[int(lb)].add(pix)
 
-        # Ef_old = sys.maxsize
+
 
         # calculate energy of whole image with current assignment
         Ef = self.Ef_total(pix_to_label, ssd_ls, dirs, K)
-        # Ef_old = [sys.maxsize for i in combinations(labels,2)] 
         # update cycle
         success = True
         cycle = 0
@@ -380,12 +379,14 @@ class stereo:
 
             # for each pair of labels, iterate
             # sort labels by len of pix in it (descending)
-            sorted_label_list = sorted(labels, key=lambda k: len(labels[k]), reverse=True)
+            # sorted_label_list = sorted(labels, key=lambda k: len(labels[k]), reverse=True)
             
+            # print([len(labels[i]) for i in labels.keys()])
             # random suffle list
-            random.shuffle(sorted_label_list)
+            rmd_labels = list(labels.keys())
+            random.shuffle(rmd_labels)
 
-            for idx,(alpha, beta) in enumerate(combinations(sorted_label_list,2)):
+            for idx,(alpha, beta) in enumerate(combinations(rmd_labels,2)):
                 # build graph
                 if len(labels[alpha]) == 0 and len(labels[beta]) == 0:
                     continue
@@ -415,11 +416,14 @@ class stereo:
                 print("change if update: ")
                 print("alpha pix: ", len(labels[alpha]), "to: ", len(partition[0]))
                 print("beta pix : ", len(labels[beta]) , "to: ", len(partition[1]))
-                new_labels[alpha] = partition[0]
-                new_labels[beta]  = partition[1]
+                new_labels[alpha] = partition[1]
+                new_labels[beta]  = partition[0]
 
                 new_pix_to_label = self.update_pix_to_label(pix_to_label, new_labels, 
                                     [alpha, beta], n)
+                unique, counts = np.unique(new_pix_to_label, return_counts=True)
+                dc = dict(zip(unique, counts))
+                print("updated counts: ",dc[alpha], dc[beta])
 
                 Ef_new = self.Ef_total(new_pix_to_label, ssd_ls, dirs, K)
                 print(Ef_new, theta,  Ef)
@@ -431,8 +435,8 @@ class stereo:
                         continue
 
                     # f = f_new
-                    labels[alpha] = np.copy(new_labels[alpha])
-                    labels[beta] = np.copy(new_labels[beta])
+                    labels[alpha] = copy.deepcopy(new_labels[alpha])
+                    labels[beta] = copy.deepcopy(new_labels[beta])
                     pix_to_label = copy.deepcopy(new_pix_to_label)
                     # partition[0].remove('alpha')
                     # partition[1].remove('beta')
