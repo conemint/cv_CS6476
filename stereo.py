@@ -74,8 +74,6 @@ class stereo:
         for x in range(-k+1,k, step):
             res = np.ones((m,n))*255**2
             if x < 0:
-                # print(img0.shape, img1.shape)
-                # print(x,"shapes:", res[:,:n+x].shape, img0[:,:n+x].shape, img1[:,n+x:].shape)
                 res[:,:n+x] = (img0[:,:n+x] - img1[:,-x:])**2
             elif x > 0:
                 res[:,x:] = (img0[:,x:] - img1[:,:n-x])**2
@@ -189,27 +187,6 @@ class stereo:
         return z
 
 
-    # def V_pq(self, K, p,q,f, pix_to_label,n):
-    #     '''
-    #     Given adjacent pixel p,q and label assignment f
-    #     calculate V(l_p,l_q) = min(K, |l_p - l_q|)
-    #     '''
-    #     ip,jp = divmod(p,n)
-    #     lp = pix_to_label[ip,jp]
-
-    #     iq,jq = divmod(q,n)
-    #     lq = pix_to_label[iq,jq]
-
-    #     return min(K, |lp - lq|)
-
-    # def Dp_fp(self, p, pix_to_label, n, ssd_ls):
-    #     '''
-    #     Calculate D_p(f_p)
-    #     '''
-    #     i,j = divmod(p,n)
-    #     fp = pix_to_label[i,j]
-    #     return ssd_ls[fp,i,j]
-
     def add_cap_tp(self, G, pix, la, lb, ssd_ls, pix_to_label, 
                 dirs, m, n, K, tpa = True):
         '''
@@ -283,11 +260,6 @@ class stereo:
                     continue
                 seen.add(q)
 
-            # # if not neighbors
-
-            # iq,jq = divmod(q,n)
-            # if abs(ip-iq) + abs(iq-iq) != 1:
-            #     continue
                 # for each pair
                 Vab = min(K, abs(alpha - beta))
                 G.add_edge(p,q, capacity = Vab)
@@ -295,8 +267,7 @@ class stereo:
                 if (p in labels[alpha] and q in labels[beta]) or \
                     (p in labels[beta] and q in labels[alpha]):
                     E += Vab
-        # if alpha not in G.nodes:
-        #     G.add
+
         return G, E
 
 
@@ -353,15 +324,13 @@ class stereo:
         # use basic algo
         basic_d = self.basic_algo_run(x = ws, rg = rg)
         pix_to_label = (basic_d + rg-1)//scale
-        # print(np.min(basic_d), np.max(basic_d), rg, scale, L, (rg*2)//L )
-        # print(np.min(pix_to_label), np.max(pix_to_label))
+
         labels = {i: set() for i in range(L)}
         for i in range(m):
             for j in range(n):
                 pix = i*n + j
                 lb = pix_to_label[i,j]
-                # if int(lb) == 22:
-                    # print("keys: ",labels.keys(), len(labels.keys()))
+
                 labels[int(lb)].add(pix)
 
 
@@ -434,25 +403,16 @@ class stereo:
                     if imp_pct < 0.05:
                         continue
 
-                    # f = f_new
+                    # update f = f_new
                     labels[alpha] = copy.deepcopy(new_labels[alpha])
                     labels[beta] = copy.deepcopy(new_labels[beta])
                     pix_to_label = copy.deepcopy(new_pix_to_label)
-                    # partition[0].remove('alpha')
-                    # partition[1].remove('beta')
-                    # print("update: ")
-                    # print("alpha pix: ", len(labels[alpha]), "to: ", len(partition[0]))
-                    # print("beta pix : ", len(labels[beta]) , "to: ", len(partition[1]))
-                    # labels[alpha] = partition[0]
-                    # labels[beta]  = partition[1]
 
-                    # pix_to_label = self.update_pix_to_label(pix_to_label, labels, 
-                    #                     [alpha, beta], n)
                     Ef = Ef_new
                     success = True
                     break
             if cycle%5 == 0:
-                # save
+                # save intermediate results
                 pix_to_label_fix = pix_to_label * scale - (rg - 1)
                 z = self.get_z(pix_to_label_fix)
 
