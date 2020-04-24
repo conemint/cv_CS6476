@@ -347,7 +347,7 @@ class stereo:
         # # random
         # pix_to_label = np.random.choice(L, m*n).reshape(m,n)
         # use basic algo
-        basic_d = self.basic_algo_run(x = 9, rg = 40)
+        basic_d = self.basic_algo_run(x = ws, rg = rg)
         pix_to_label = (basic_d + rg-1)//scale
         print(np.min(pix_to_label), np.max(pix_to_label))
         labels = {i: set() for i in range(L)}
